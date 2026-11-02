@@ -1,0 +1,21 @@
+ACG Game Library 0.7.0
+
+This desktop application dynamically bundles the following third-party runtimes:
+
+pypinyin 0.55.0 (MIT License): https://github.com/mozillazg/python-pinyin
+Used locally for Chinese category sorting and search. License in licenses/pypinyin-LICENSE.txt.
+
+Python 3.12 (PSF License): https://www.python.org/psf/license/
+PySide6 / Qt for Python 6.12.0 (LGPLv3 / GPLv3 / commercial):
+https://doc.qt.io/qtforpython-6/licenses.html
+https://code.qt.io/cgit/pyside/pyside-setup.git/
+Qt 6.12 (LGPLv3 / GPLv3 / commercial, according to module):
+https://www.qt.io/licensing/open-source-lgpl-obligations
+https://code.qt.io/cgit/qt/
+PyInstaller bootloader (GPL with distribution exception):
+https://pyinstaller.org/en/stable/license.html
+
+License texts from the installed distributions are included under licenses/.
+The application's source is provided in source/. Qt libraries are dynamically
+loaded from _internal/ and can be replaced with compatible versions.
+XXMI Launcher is an external user-selected application and is not distributed here.
