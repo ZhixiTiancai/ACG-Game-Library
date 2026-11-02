@@ -10,7 +10,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 
-VERSION = '0.7.0'
+VERSION = '0.7.1'
 GAMES = {
     'SRMI': {'name': '崩坏：星穹铁道', 'short': '星穹铁道', 'en': 'HONKAI: STAR RAIL', 'color': '#ae9aff'},
     'ZZMI': {'name': '绝区零', 'short': '绝区零', 'en': 'ZENLESS ZONE ZERO', 'color': '#e8c36c'},

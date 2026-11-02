@@ -10,6 +10,7 @@ import acg_core
 
 
 def fixture(root, version='2.4.9', games=('SRMI', 'ZZMI', 'EFMI')):
+    root = Path(root).resolve()
     exe = root / 'Resources' / 'Bin' / 'XXMI Launcher.exe'
     exe.parent.mkdir(parents=True)
     exe.write_bytes(b'test fixture, never executable')
@@ -61,7 +62,7 @@ class CoreTests(unittest.TestCase):
 
     def test_root_exe_and_bin_resolve_to_same_instance_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / 'XXMI 测试'; exe = fixture(root)
+            root = (Path(tmp) / 'XXMI 测试').resolve(); exe = fixture(root)
             before = {str(p): p.read_bytes() for p in root.rglob('*') if p.is_file()}
             for path in [root, exe, exe.parent]:
                 instance = inspect_installation(path)

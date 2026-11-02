@@ -15,7 +15,7 @@ from updater import (Release,UpdateError,Cancelled,EXE,MANIFEST,REPOSITORY,parse
 
 class UpdaterTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory(); self.base=Path(self.temp.name)
+        self.temp=tempfile.TemporaryDirectory(); self.base=Path(self.temp.name).resolve()
         self.built=self.base/'built'; self.built.mkdir(); (self.built/EXE).write_bytes(b'MZ-new-version')
         (self.built/'_internal').mkdir(); (self.built/'_internal'/'runtime.dll').write_bytes(b'new runtime')
         self.project=self.base/'project'; self.project.mkdir()
