@@ -1,4 +1,4 @@
-ACG Game Library 0.7.1
+ACG Game Library 0.7.2
 
 This desktop application dynamically bundles the following third-party runtimes:
 

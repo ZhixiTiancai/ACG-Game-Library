@@ -99,6 +99,13 @@ QFrame#panel, QFrame#emptyPanel {{background:{rgba(p['panel'],opacity)};}}
 QFrame#modCard {{background:{rgba(p['card'],opacity)};}}
 QFrame#divider {{background:{border};}}
 QLineEdit, QComboBox {{background:{rgba(p['input'],max(.5,opacity))};}}
+QComboBox#categoryPicker {{combobox-popup: 0;}}
+QComboBox#categoryPicker QListView#categoryOptions {{
+    background:{p['panel']}; color:{p['text']}; border:1px solid {border}; outline:0;
+}}
+QListView#categoryOptions::item {{min-height:24px; padding:6px 12px;}}
+QListView#categoryOptions::item:selected {{background:{selected}; color:{p['text']};}}
+QListView#categoryOptions::item:hover {{background:{p['hover']}; color:{p['text']};}}
 QPushButton#categoryButton {{text-align:left;background:{rgba(p['card'],opacity)};border:1px solid {border};border-radius:12px;padding:0;}}
 QPushButton#categoryButton:checked {{background:{rgba(selected,max(.55,opacity))};border-color:{accent};}}
 QPushButton#categoryButton:hover {{border-color:{accent};}}

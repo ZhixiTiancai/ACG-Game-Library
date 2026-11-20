@@ -187,8 +187,10 @@ class UiTests(unittest.TestCase):
             w.detail.set_preview_file(image_path)
             self.assertFalse(w.detail.photo.original.isNull())
             w.back_to_category()
-            self.assertEqual(w.library_view.category, category['id'])
+            self.assertEqual(w.library_view.category, UNCATEGORIZED)
+            self.assertNotIn(record['id'], w.library_view.mod_buttons)
             stored = w.store.get('SRMI', record['id'])
+            self.assertEqual(stored['category_id'], category['id'])
             self.assertTrue(stored['favorite']); self.assertEqual(stored['name'], '知更鸟 · 测试名称')
             QTest.mouseClick(w.game_buttons['EFMI'], Qt.MouseButton.LeftButton)
             self.assertEqual(w.game, 'EFMI'); self.assertEqual(w.library_view.game, 'EFMI')
@@ -219,6 +221,47 @@ class UiTests(unittest.TestCase):
             QTest.mouseClick(w.library_view.use_buttons[record['id']], Qt.MouseButton.LeftButton)
             self.assertFalse(w.store.is_enabled('SRMI',record['id']))
             w.close(); self.app.processEvents()
+
+    def test_reclassifying_from_a_scrolled_filtered_list_preserves_position(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            w = Window(Settings(root), scan=False)
+            sample = archive(root / 'sample.zip')
+            records = [w.store.import_zip('SRMI', sample) for _ in range(18)]
+            for record in records:
+                w.store.update('SRMI', record['id'], favorite=True)
+            target = w.store.add_category('SRMI', '角色测试')
+            view = w.library_view
+            view.search.setText(records[0]['name'])
+            view.category_search.setText('未分类')
+            view.set_favorites(True)
+            w.show()
+            QTest.qWait(100)
+            scroll = view.mod_scroll.verticalScrollBar()
+            scroll.setValue(500)
+            self.assertEqual(scroll.value(), 500)
+            moved = records[4]['id']
+            w.show_detail(moved)
+            combo = w.detail.categories
+            combo.showPopup()
+            QTest.qWait(250)
+            target_index = combo.model().index(combo.findData(target['id']), 0)
+            popup = combo.view()
+            item_rect = popup.visualRect(target_index)
+            self.assertGreaterEqual(item_rect.height(), 34)
+            QTest.keyClick(popup, Qt.Key.Key_Down)
+            QTest.keyClick(popup, Qt.Key.Key_Return)
+            self.assertEqual(w.store.get('SRMI', moved)['category_id'], target['id'])
+            w.back_to_category()
+            QTest.qWait(100)
+            self.assertEqual(view.category, UNCATEGORIZED)
+            self.assertEqual(view.search.text(), records[0]['name'])
+            self.assertEqual(view.category_search.text(), '未分类')
+            self.assertTrue(view.only_favorites)
+            self.assertNotIn(moved, view.mod_buttons)
+            self.assertEqual(len(view.mod_buttons), 17)
+            self.assertEqual(scroll.value(), 500)
+            w.close()
 
 
 if __name__ == '__main__': unittest.main(verbosity=2)

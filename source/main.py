@@ -211,6 +211,7 @@ class Window(QMainWindow):
         body = column(0); outer.addLayout(body, 1)
         self.stack = QStackedWidget(); body.addWidget(self.stack, 1)
         self.make_library(); self.make_settings()
+        self.detail_origin = None
         self.detail = ModDetailPage(self.store); self.stack.addWidget(self.detail)
         self.detail.back_requested.connect(self.back_to_category)
         self.detail.changed.connect(self.library_view.refresh)
@@ -269,6 +270,12 @@ class Window(QMainWindow):
 
     def show_detail(self, mod_id):
         if self.detail.show_mod(self.game, mod_id):
+            view = self.library_view
+            self.detail_origin = (
+                self.store, self.game, view.category,
+                view.mod_scroll.verticalScrollBar().value(),
+                view.categories_scroll.verticalScrollBar().value(),
+            )
             self.navigate(2)
 
     def toggle_usage(self, mod_id):
@@ -286,10 +293,6 @@ class Window(QMainWindow):
             self.notify(f'操作未完成：{exc}', True)
 
     def back_to_category(self):
-        mod = self.store.get(self.game, self.detail.mod_id)
-        if mod:
-            self.library_view.category = mod['category_id']
-        self.library_view.refresh()
         self.navigate(0)
 
     def make_settings(self):
@@ -441,6 +444,18 @@ class Window(QMainWindow):
 
     def navigate(self, index):
         self.stack.setCurrentIndex(index); self.library_nav.setChecked(index != 1); self.settings_nav.setChecked(index == 1)
+        if index != 0 or self.detail_origin is None:
+            return
+        store, game, category, mod_offset, category_offset = self.detail_origin
+        self.detail_origin = None
+        view = self.library_view
+
+        def restore_position():
+            if self.stack.currentIndex() == 0 and (self.store, self.game, view.category) == (store, game, category):
+                view.mod_scroll.verticalScrollBar().setValue(mod_offset)
+                view.categories_scroll.verticalScrollBar().setValue(category_offset)
+
+        QTimer.singleShot(0, self, restore_position)
 
     def persist(self):
         try:
@@ -451,6 +466,7 @@ class Window(QMainWindow):
             return False
 
     def select_game(self, game):
+        self.detail_origin = None
         self.game = game; self.settings.values['game'] = game; self.persist()
         self.library_view.set_game(game)
         self.navigate(0); self.refresh_connection()

@@ -5,10 +5,11 @@ from collections import Counter
 from functools import lru_cache
 from pypinyin import lazy_pinyin, Style
 
-from PySide6.QtCore import Qt, QSize, Signal, QRectF, QTimer, QEvent
+from PySide6.QtCore import Qt, QSize, Signal, QRectF, QTimer, QEvent, QSignalBlocker
 from PySide6.QtGui import QPixmap, QImageReader, QPainter, QPainterPath, QColor, QPen
 from PySide6.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QGridLayout, QScrollArea, QLineEdit, QInputDialog, QFileDialog, QComboBox, QSizePolicy)
+    QHBoxLayout, QGridLayout, QScrollArea, QLineEdit, QInputDialog, QFileDialog, QComboBox,
+    QListView, QSizePolicy)
 
 from acg_core import GAMES
 from library_store import UNCATEGORIZED
@@ -337,7 +338,19 @@ class ModDetailPage(QWidget):
         self.save_name_button = QPushButton('保存名称'); self.save_name_button.clicked.connect(self.save_name); self.name.returnPressed.connect(self.save_name); form.addWidget(self.save_name_button)
         form.addWidget(text('库内文件夹同步改名；同名时自动加序号。', 'tiny', True))
         form.addSpacing(12); self.favorite = QPushButton('☆  收藏模组'); self.favorite.setCheckable(True); self.favorite.clicked.connect(self.set_favorite); form.addWidget(self.favorite)
-        form.addSpacing(12); form.addWidget(text('所属分类', 'muted')); self.categories = QComboBox(); form.addWidget(self.categories); self.categories.currentIndexChanged.connect(self.set_category)
+        form.addSpacing(12)
+        form.addWidget(text('所属分类', 'muted'))
+        self.categories = QComboBox()
+        self.categories.setObjectName('categoryPicker')
+        self.categories.setAccessibleName('所属分类')
+        self.categories.setMaxVisibleItems(8)
+        picker_view = QListView()
+        picker_view.setObjectName('categoryOptions')
+        picker_view.setUniformItemSizes(True)
+        picker_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.categories.setView(picker_view)
+        self.categories.currentIndexChanged.connect(self.set_category)
+        form.addWidget(self.categories)
         form.addWidget(text('列出当前游戏的全部自定义分类。', 'tiny', True))
         form.addStretch(); self.use_button = QPushButton('使用此模组'); self.use_button.setObjectName('primary'); self.use_button.clicked.connect(lambda: self.usage_requested.emit(self.mod_id)); form.addWidget(self.use_button)
         self.info = text('', 'muted', True); form.addWidget(self.info)
@@ -351,14 +364,20 @@ class ModDetailPage(QWidget):
         self.name.setText(mod['name']); self.title.setText(mod['name'])
         self.favorite.setChecked(mod['favorite']); self.favorite.setText('★  已收藏' if mod['favorite'] else '☆  收藏模组')
         self.categories.blockSignals(True); self.categories.clear()
-        for cat in sorted(self.store.categories(game), key=category_sort_key): self.categories.addItem(cat['name'], cat['id'])
+        for cat in sorted(self.store.categories(game), key=category_sort_key):
+            self.categories.addItem(cat['name'], cat['id'])
+            self.categories.setItemData(self.categories.count() - 1, cat['name'], Qt.ItemDataRole.ToolTipRole)
         self.categories.setCurrentIndex(max(0, self.categories.findData(mod['category_id']))); self.categories.blockSignals(False)
-        self.breadcrumb.setText(f'{GAMES[game]["short"]}  /  {self.store.category_name(game, mod["category_id"])}')
+        self.update_breadcrumb(mod['category_id'])
         active = self.store.is_enabled(game, mod_id)
         self.use_button.setText('停用此模组' if active else '使用此模组')
         self.info.setText(f'{game}  ·  本地副本\n' + ('正在外部 XXMI 中使用' if active else '尚未使用'))
         self.photo.load(self.store.absolute(game, mod['preview']) if mod['preview'] else '')
         return True
+
+    def update_breadcrumb(self, category_id):
+        category_name = self.store.category_name(self.game, category_id)
+        self.breadcrumb.setText(f'{GAMES[self.game]["short"]}  /  {category_name}')
 
     def save_name(self):
         try:
@@ -374,11 +393,19 @@ class ModDetailPage(QWidget):
             self.show_mod(self.game, self.mod_id); self.message.emit(str(exc), True)
 
     def set_category(self, *_):
-        if not self.mod_id: return
+        category_id = self.categories.currentData()
+        if not self.mod_id or category_id is None:
+            return
         try:
-            self.store.update(self.game, self.mod_id, category_id=self.categories.currentData()); self.show_mod(self.game, self.mod_id)
+            self.store.update(self.game, self.mod_id, category_id=category_id)
+            self.update_breadcrumb(category_id)
             self.changed.emit(); self.message.emit('所属分类已保存。', False)
-        except (OSError, ValueError) as exc: self.message.emit(str(exc), True)
+        except (OSError, ValueError) as exc:
+            mod = self.store.get(self.game, self.mod_id)
+            if mod:
+                with QSignalBlocker(self.categories):
+                    self.categories.setCurrentIndex(self.categories.findData(mod['category_id']))
+            self.message.emit(str(exc), True)
 
     def choose_preview(self):
         filename, _ = QFileDialog.getOpenFileName(self, '设置模组大图', '', '图片 (*.png *.jpg *.jpeg *.webp *.bmp)')
